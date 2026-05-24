@@ -59,15 +59,27 @@ class TestLabelPinPlacement:
         assert label._data.justify_v == "bottom"
 
     def test_label_on_resistor_90deg(self):
-        """Test label placement on resistor at 90° rotation."""
+        """Test label placement on resistor at 90° rotation.
+
+        Device:R pin 1 sits at (0, +3.81) in symbol space (above the body).
+        After CCW 90° rotation and Y-flip into schematic space, pin 1 is to
+        the LEFT of the component origin — matching eeschema's layout and
+        the expectations already encoded in test_pin_rotation.py.
+
+        Note: the auto-calculated rotation/justify values for 90°/270°
+        rotations are currently derived from pin_rotation alone and do not
+        re-evaluate after the geometry fix; ensuring labels visually extend
+        AWAY from the component body for these rotations is left as a
+        separate follow-up.
+        """
         sch = ksa.create_schematic("Test")
         sch.components.add("Device:R", "R1", "10k", position=(100.0, 100.0), rotation=90)
 
-        # Pin 1 should be on right side
         label_uuid = sch.add_label("VCC", pin=("R1", "1"))
         label = sch._labels.get(label_uuid)
 
-        assert label.position.x == pytest.approx(104.14, abs=0.01)
+        # Pin 1 ends up on the LEFT side at 90° rotation.
+        assert label.position.x == pytest.approx(96.52, abs=0.01)
         assert label.position.y == pytest.approx(100.33, abs=0.01)
         assert label.rotation == pytest.approx(180.0, abs=0.1)
         assert label._data.justify_h == "left"
@@ -87,15 +99,20 @@ class TestLabelPinPlacement:
         assert label._data.justify_h == "right"
 
     def test_label_on_resistor_270deg(self):
-        """Test label placement on resistor at 270° rotation."""
+        """Test label placement on resistor at 270° rotation.
+
+        At 270° CCW (mirror of the 90° case), pin 1 ends up on the RIGHT
+        side of the component origin. See the note on
+        test_label_on_resistor_90deg regarding label visual orientation.
+        """
         sch = ksa.create_schematic("Test")
         sch.components.add("Device:R", "R1", "10k", position=(100.0, 100.0), rotation=270)
 
-        # Pin 1 should be on left side
         label_uuid = sch.add_label("VCC", pin=("R1", "1"))
         label = sch._labels.get(label_uuid)
 
-        assert label.position.x == pytest.approx(96.52, abs=0.01)
+        # Pin 1 ends up on the RIGHT side at 270° rotation.
+        assert label.position.x == pytest.approx(104.14, abs=0.01)
         assert label.position.y == pytest.approx(100.33, abs=0.01)
         assert label.rotation == pytest.approx(0.0, abs=0.1)
         assert label._data.justify_h == "right"

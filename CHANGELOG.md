@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `core.geometry.apply_transformation` now applies rotation in symbol space before
+  flipping Y to schematic space. The previous order (Y-flip first, then rotation)
+  inverted the effective rotation direction for 90° and 270°, producing pin
+  positions returned by `Schematic.get_component_pin_position` that disagreed
+  with eeschema's actual layout. 0° and 180° were unaffected, which is why the
+  bug stayed hidden behind tests that only exercised those orientations.
+
 ## [0.5.6] - 2025-11-19
 
 ### Added

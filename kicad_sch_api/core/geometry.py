@@ -71,9 +71,11 @@ def apply_transformation(
 
     Migrated from circuit-synth for accurate pin position calculation.
 
-    CRITICAL: Symbol coordinates use normal Y-axis (+Y is up), but schematic
-    coordinates use inverted Y-axis (+Y is down). We must negate Y from symbol
-    space before applying transformations.
+    Symbol coordinates use normal Y-axis (+Y is up); schematic coordinates use
+    inverted Y-axis (+Y is down). To match eeschema's actual layout we apply
+    mirror and rotation in symbol space first, then flip Y to convert into
+    schematic space. (Flipping Y first inverts the rotation direction for
+    90°/270° — see the comment near the Y-flip below.)
 
     Args:
         point: Point to transform (x, y) relative to origin in SYMBOL space
@@ -88,12 +90,7 @@ def apply_transformation(
 
     logger.debug(f"Transforming point ({x}, {y}) with rotation={rotation}°, mirror={mirror}")
 
-    # CRITICAL: Negate Y to convert from symbol space (normal Y) to schematic space (inverted Y)
-    # This must happen BEFORE rotation/mirroring
-    y = -y
-    logger.debug(f"After Y-axis inversion (symbol→schematic): ({x}, {y})")
-
-    # Apply mirroring
+    # Apply mirroring in symbol space (before rotation, per KiCad eeschema semantics)
     if mirror == "x":
         x = -x
         logger.debug(f"After X mirror: ({x}, {y})")
@@ -101,7 +98,7 @@ def apply_transformation(
         y = -y
         logger.debug(f"After Y mirror: ({x}, {y})")
 
-    # Apply rotation
+    # Apply rotation in symbol space (CCW, math convention).
     if rotation == 90:
         x, y = -y, x
         logger.debug(f"After 90° rotation: ({x}, {y})")
@@ -111,6 +108,14 @@ def apply_transformation(
     elif rotation == 270:
         x, y = y, -x
         logger.debug(f"After 270° rotation: ({x}, {y})")
+
+    # Convert from symbol space (+Y up) to schematic space (+Y down). This must
+    # happen AFTER rotation: applying it before flips the effective rotation
+    # direction for 90°/270°, producing pin positions that disagree with
+    # eeschema's actual layout. For 0°/180° the two orderings happen to agree,
+    # which is why the previous order-of-operations bug only surfaced at 90/270.
+    y = -y
+    logger.debug(f"After Y-axis inversion (symbol→schematic): ({x}, {y})")
 
     # Translate to absolute position
     final_x = origin.x + x
