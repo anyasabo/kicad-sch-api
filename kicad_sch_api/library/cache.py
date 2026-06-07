@@ -852,10 +852,13 @@ class SymbolLibraryCache:
                                 f"🔧 Extracted position for {prop_name_str}: {prop_position}"
                             )
 
-                        if prop_name == sexpdata.Symbol("Reference"):
+                        # Property names in .kicad_sym are quoted -> parsed as str,
+                        # not sexpdata.Symbol, so compare on the normalized string.
+                        prop_name_norm = str(prop_name).strip('"')
+                        if prop_name_norm == "Reference":
                             result["reference_prefix"] = str(prop_value)
                             logger.debug(f"🔧 Set reference_prefix: {str(prop_value)}")
-                        elif prop_name == sexpdata.Symbol("Description"):
+                        elif prop_name_norm == "Description":
                             result["Description"] = str(prop_value)  # Keep original case
                             logger.debug(f"🔧 Set Description: {str(prop_value)}")
                         elif prop_name == sexpdata.Symbol("ki_keywords"):
@@ -1072,7 +1075,12 @@ class SymbolLibraryCache:
                             # Not a number, skip
                             pass
 
-        unit_count = len(unit_numbers) if unit_numbers else 1
+        # Unit 0 is KiCAD's common/shared graphics sub-symbol (drawn for every
+        # unit), not a real unit. Real units are numbered 1..N, so the unit count
+        # is the highest unit number present (e.g. Device:R has R_0_1 + R_1_1 -> 1
+        # unit; TL072 has _0_,_1_,_2_,_3_ -> 3 units).
+        meaningful_units = {u for u in unit_numbers if u > 0}
+        unit_count = max(meaningful_units) if meaningful_units else 1
         logger.debug(f"🔧 COUNT_UNITS: Total units found: {unit_count}")
         return unit_count
 
