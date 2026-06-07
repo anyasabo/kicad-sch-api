@@ -295,25 +295,25 @@ class TestComponentCollection:
             SchematicSymbol(
                 uuid="uuid1",
                 lib_id="Device:R",
-                reference="U1",  # Use generic U prefix to match default
+                reference="R1",
                 value="10k",
                 position=Point(100, 100),
             ),
             SchematicSymbol(
                 uuid="uuid2",
                 lib_id="Device:R",
-                reference="U2",  # Use generic U prefix
+                reference="R2",
                 value="1k",
                 position=Point(200, 100),
             ),
         ]
         collection = ComponentCollection(symbol_data)
 
-        # Should generate U3 since U1 and U2 exist
+        # Device:R has reference prefix 'R', so generation should give R3
         next_ref = collection._generate_reference("Device:R")
         # The generated reference should not conflict with existing ones
-        assert next_ref not in ["U1", "U2"]
-        assert next_ref.startswith("U")
+        assert next_ref not in ["R1", "R2"]
+        assert next_ref.startswith("R")
         assert int(next_ref[1:]) >= 3  # Should be at least U3
 
     def test_find_available_position(self):

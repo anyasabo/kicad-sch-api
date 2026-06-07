@@ -117,8 +117,7 @@ class TestAddWithPinAt:
             lib_id="Device:R", pin_number="2", pin_position=(150, 100), value="10k"
         )
 
-        # Note: Resistor has reference prefix 'U' in this KiCAD installation
-        assert r1.reference.startswith("U")
+        assert r1.reference.startswith("R")
         assert r1.value == "10k"
 
         # Verify pin 2 is actually at the desired position
