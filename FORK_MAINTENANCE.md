@@ -53,14 +53,36 @@ Measured on this machine, Python 3.12 and 3.14 (identical results — failures a
 - [ ] **Add `pytest-randomly`** so test-order pollution can never silently return — the suite runs
   in random order in CI and fails loudly if isolation regresses. (This is the idiomatic guard for
   exactly the bug above.)
-- [ ] **Triage and fix the genuine (isolation-independent) failures.** Each fails in isolation, so
-  it is a real stale-test/code mismatch — decide per case whether the test or the code is wrong:
-  - [ ] `test_bom_auditor.py` (7)
-  - [ ] `test_multi_unit_components.py` (4) — likely related to the `F821 Component` issue below
-  - [ ] `test_property_visibility.py` (3)
-  - [ ] `test_text_effects.py` (~6) — tests assert internal `__sexp_Reference` keys the code no longer emits
-  - [ ] `test_find_pins_by_name.py` (3), `test_property_positioning.py` (2),
-    `test_pin_uuid_preservation.py` (2), remaining singletons
+- [ ] **Drive the remaining genuine failures to green.** After the conftest fix the suite is
+  **16 failed / 876 passed**. Triage map (each fails in isolation, so it's a real stale-test or
+  real-code call):
+  - [x] *bom_auditor `next(sch.components)` ×4* — **stale test** (collection isn't an iterator);
+    fixed to `sch.components[0]`.
+  - [x] *`ComponentIssue.schematic` ×1* — **real bug**: the CLI (`bom_manage.py`) already reads
+    `.schematic_path`, so the field name was wrong and the CLI would `AttributeError`. Renamed field.
+  - [ ] **Property data-model dict/str inconsistency (real bug, blocks 6):** `SchematicSymbol.properties`
+    is typed `Dict[str, str]`, and `set_property`/`add_property` store strings, but the **parser stores
+    a full `{at, effects, name, value, hidden}` dict** as the value when a component is loaded or
+    instantiated from a library symbol. So `get_property()` returns a string for set values and a dict
+    for library/loaded ones — violating its own annotation and breaking real usage
+    (`transform_properties` feeds the dict back to `set_property` → "must be strings"). Blocks
+    `test_property_visibility` (3), `test_text_effects` (1), `test_bom_auditor` transform + dnp (2).
+    **Fix = normalize to one representation:** keep `properties` value-only (`Dict[str, str]`) and hold
+    the s-expr detail (position/effects/hidden) in a parallel structure (the existing `__sexp_*`
+    convention or a dedicated field); make the parser populate both. *Risky w.r.t. format preservation
+    — do as its own reviewed change with roundtrip tests.*
+  - [ ] **Multi-unit count (real bug, 2):** `add(..., add_all_units=True)` on a **single-unit** symbol
+    (`Device:R`) creates 2 components instead of 1 (`test_multi_unit_components` 123, 394).
+  - [ ] **Grid-snapping (design decision, 2):** `add(position=(100,100))` snaps to `(100.33, 100.33)`
+    on the 1.27 mm grid; two tests assert the exact input. *Decide:* is silent snap-to-grid the right
+    default (KiCad-idiomatic, but surprising), opt-in, or should tests use on-grid coordinates? Then
+    align code + tests (`test_multi_unit_components` 194, 231).
+  - [ ] **Pin-name parsing (verify, 4):** `find_pins_by_name("R1","~")` / `get_pins_info` expect
+    resistor pins named `"~"`; they come back empty/unnamed. Confirm whether symbol pin *names* are
+    parsed (vs only numbers) — likely a real gap (`test_find_pins_by_name` 3, `test_get_component_pins` 1).
+  - [ ] **Round-trip preservation (verify, 2):** `test_property_positioning` byte-perfect roundtrip and
+    `test_text_box_escaping` (text_box not found after load). Could be real preservation gaps or stale
+    internal-structure access (`_data["items"]`). Confirm before touching the formatter.
 - [ ] **Get `pytest tests/` fully green** (unit + integration + reference) and keep the
   `--cov-fail-under=70` gate. Quarantine anything genuinely upstream-broken with an explicit
   `@pytest.mark.skip(reason=...)` + a tracking line here rather than leaving it red.
