@@ -222,9 +222,9 @@ class TestRoundTripPreservation:
         sch = ksa.Schematic.load(ref_path)
         comp = sch.components[0]
 
-        # Capture original positions
-        original_ref_pos = comp.properties["Reference"]["at"]
-        original_val_pos = comp.properties["Value"]["at"]
+        # Capture original positions (via the effects API; `properties` is value-only Dict[str, str])
+        original_ref_pos = comp.get_property_effects("Reference")["position"]
+        original_val_pos = comp.get_property_effects("Value")["position"]
 
         # Save and reload
         with tempfile.NamedTemporaryFile(suffix=".kicad_sch", delete=False) as f:
@@ -235,8 +235,8 @@ class TestRoundTripPreservation:
         comp2 = sch2.components[0]
 
         # Positions should be preserved exactly
-        assert comp2.properties["Reference"]["at"] == original_ref_pos
-        assert comp2.properties["Value"]["at"] == original_val_pos
+        assert comp2.get_property_effects("Reference")["position"] == original_ref_pos
+        assert comp2.get_property_effects("Value")["position"] == original_val_pos
 
     def test_round_trip_all_10_references_byte_perfect(self):
         """All 10 reference schematics should round-trip byte-perfectly.
@@ -313,8 +313,8 @@ class TestHiddenPropertyStacking:
         comp = sch.components[0]
 
         # Hidden properties at center
-        datasheet_pos = comp.properties["Datasheet"]["at"]
-        description_pos = comp.properties["Description"]["at"]
+        datasheet_pos = comp.get_property_effects("Datasheet")["position"]
+        description_pos = comp.get_property_effects("Description")["position"]
 
         comp_x = comp.position.x
         comp_y = comp.position.y
@@ -333,10 +333,10 @@ class TestHiddenPropertyStacking:
         sch = ksa.Schematic.load(ref_path)
         comp = sch.components[0]
 
-        # Hidden properties should have hide flag
-        assert comp.properties["Datasheet"]["effects"].get("hide") == "yes"
-        assert comp.properties["Description"]["effects"].get("hide") == "yes"
-        assert comp.properties["Footprint"]["effects"].get("hide") == "yes"
+        # Hidden properties should not be visible
+        assert comp.get_property_effects("Datasheet")["visible"] is False
+        assert comp.get_property_effects("Description")["visible"] is False
+        assert comp.get_property_effects("Footprint")["visible"] is False
 
 
 class TestEdgeCases:

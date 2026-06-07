@@ -75,8 +75,12 @@ class SymbolParser(BaseElementParser):
                         sexp_key = f"__sexp_{prop_name}"
                         symbol_data["properties"][sexp_key] = sub_item
 
-                        # Store parsed property dict for easy access (used by tests and API)
-                        symbol_data["properties"][prop_name] = prop_data
+                        # Store the value string under the property name so that
+                        # `properties` is consistently Dict[str, str] (matching set_property /
+                        # add_property and the get_property -> str contract). The full parsed
+                        # detail (position, effects, hide) is preserved separately under the
+                        # __sexp_<name> key above for byte-exact serialization.
+                        symbol_data["properties"][prop_name] = prop_data.get("value")
 
                         # Check if property is hidden
                         if prop_data.get("hidden", False):
