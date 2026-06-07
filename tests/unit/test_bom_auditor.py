@@ -92,7 +92,7 @@ class TestPropertyMatcher:
     def test_exact_match(self, test_fixtures_dir):
         """Should match exact values."""
         sch = ksa.Schematic.load(str(test_fixtures_dir / "perfect.kicad_sch"))
-        comp = next(sch.components)
+        comp = sch.components[0]
 
         assert PropertyMatcher.matches(comp, {"value": "10k"}) is True
         assert PropertyMatcher.matches(comp, {"value": "100k"}) is False
@@ -100,7 +100,7 @@ class TestPropertyMatcher:
     def test_wildcard_match(self, test_fixtures_dir):
         """Should match wildcards."""
         sch = ksa.Schematic.load(str(test_fixtures_dir / "perfect.kicad_sch"))
-        comp = next(sch.components)
+        comp = sch.components[0]
 
         assert PropertyMatcher.matches(comp, {"reference": "R*"}) is True
         assert PropertyMatcher.matches(comp, {"reference": "C*"}) is False
@@ -108,14 +108,14 @@ class TestPropertyMatcher:
     def test_empty_property_match(self, test_fixtures_dir):
         """Should match empty/missing properties."""
         sch = ksa.Schematic.load(str(test_fixtures_dir / "missing.kicad_sch"))
-        comp = next(sch.components)
+        comp = sch.components[0]
 
         assert PropertyMatcher.matches(comp, {"PartNumber": ""}) is True
 
     def test_multiple_criteria_and_logic(self, test_fixtures_dir):
         """Multiple criteria should use AND logic."""
         sch = ksa.Schematic.load(str(test_fixtures_dir / "perfect.kicad_sch"))
-        comp = next(sch.components)
+        comp = sch.components[0]
 
         # Both match
         assert PropertyMatcher.matches(comp, {"value": "10k", "reference": "R1"}) is True

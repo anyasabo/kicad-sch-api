@@ -12,7 +12,7 @@ from .matcher import PropertyMatcher
 @dataclass
 class ComponentIssue:
     """Component with missing properties."""
-    schematic: str
+    schematic_path: str
     reference: str
     value: str
     footprint: str
@@ -73,7 +73,7 @@ class BOMPropertyAuditor:
                 # If any properties missing, record the issue
                 if missing:
                     issues.append(ComponentIssue(
-                        schematic=str(schematic_path),
+                        schematic_path=str(schematic_path),
                         reference=component.reference,
                         value=component.value,
                         footprint=component.footprint or "",
@@ -162,7 +162,7 @@ class BOMPropertyAuditor:
 
             for issue in issues:
                 row = {
-                    "Schematic": issue.schematic,
+                    "Schematic": issue.schematic_path,
                     "Reference": issue.reference,
                     "Value": issue.value,
                     "Footprint": issue.footprint,
